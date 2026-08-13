@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bloom | Growth &amp; Decay Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#c9e8f7;
+    --sky-deep:#a9d9f0;
+    --lavender:#e3daf7;
+    --lavender-deep:#cdbdf0;
+    --ink:#3d3a5c;
+    --ink-soft:#6a6690;
+    --white:#ffffff;
+    --leaf:#8fb98a;
+    --leaf-deep:#6fa06a;
+    --growth:#5e9e7a;
+    --decay:#b06a9a;
+    --error:#c0506a;
+    --error-bg:#fdeaf0;
+    --shadow: 0 20px 45px -20px rgba(93,86,140,0.35);
+    --radius: 22px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    min-height:100%;
+    font-family:'Quicksand', sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(255,255,255,0.55), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(255,255,255,0.4), transparent 45%),
+      linear-gradient(160deg, var(--sky) 0%, var(--sky-deep) 30%, var(--lavender) 68%, var(--lavender-deep) 100%);
+    background-attachment: fixed;
+  }
+
+  .field-bg{
+    position: fixed;
+    inset: 0;
+    pointer-events:none;
+    overflow:hidden;
+    z-index:0;
+  }
+  .field-bg svg{ position:absolute; opacity:0.9; }
+
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 36px 20px 60px;
+  }
+
+  header{
+    text-align:center;
+    margin-bottom: 28px;
+  }
+  .header-tulips{
+    display:flex;
+    justify-content:center;
+    align-items:flex-end;
+    gap: 6px;
+    margin-bottom: -6px;
+  }
+  .header-tulips svg{ width:38px; height:38px; }
+  .header-tulips svg:nth-child(2){ width:52px; height:52px; margin-bottom:4px; }
+
+  h1{
+    font-family:'Playfair Display', serif;
+    font-weight:700;
+    font-size: clamp(1.9rem, 5vw, 2.6rem);
+    color: var(--ink);
+    margin: 6px 0 4px;
+    letter-spacing: 0.3px;
+  }
+  header p{
+    margin:0;
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+  }
+
+  .card{
+    background: rgba(255,255,255,0.86);
+    backdrop-filter: blur(6px);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,0.6);
+    padding: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .corner-tulip{
+    position:absolute;
+    width: 86px; height: 86px;
+    opacity: 0.9;
+    pointer-events:none;
+  }
+  .corner-tulip.br{ right:-14px; bottom:-14px; transform: scaleX(-1) rotate(-8deg); }
+
+  nav.tabs{
+    display:flex;
+    gap: 6px;
+    padding: 10px;
+  }
+  nav.tabs button{
+    flex:1;
+    border:none;
+    background: transparent;
+    font-family:'Quicksand', sans-serif;
+    font-weight:700;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    padding: 12px 10px;
+    border-radius: 14px;
+    cursor:pointer;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+  nav.tabs button.active{
+    background: linear-gradient(135deg, var(--sky-deep), var(--lavender-deep));
+    color: #fff;
+    box-shadow: 0 8px 18px -8px rgba(120,100,190,0.55);
+  }
+  nav.tabs button:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible{
+    outline: 3px solid #7d6fd0;
+    outline-offset: 2px;
+  }
+
+  .panel{ display:none; padding: 6px 22px 26px; }
+  .panel.active{ display:block; }
+
+  fieldset{
+    border: none;
+    padding:0;
+    margin: 0 0 16px;
+  }
+  legend{
+    font-family:'Playfair Display', serif;
+    font-weight:600;
+    font-size: 1.05rem;
+    color: var(--ink);
+    margin-bottom: 8px;
+    padding:0;
+  }
+
+  .segmented{
+    display:flex;
+    background: #f1edfb;
+    border-radius: 14px;
+    padding: 4px;
+    gap:4px;
+  }
+  .segmented label{
+    flex:1;
+    text-align:center;
+    padding: 9px 6px;
+    border-radius: 10px;
+    font-weight:600;
+    font-size: 0.9rem;
+    cursor:pointer;
+    color: var(--ink-soft);
+    transition: all 0.2s ease;
+  }
+  .segmented input{ position:absolute; opacity:0; pointer-events:none; }
+  .segmented input:checked + label{
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 4px 10px -4px rgba(120,100,190,0.5);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 520px){ .grid{ grid-template-columns: 1fr; } }
+
+  .input-group{ display:flex; flex-direction:column; gap:6px; }
+  .input-group label{
+    font-weight:700;
+    font-size: 0.86rem;
+    color: var(--ink);
+  }
+  .input-group .hint{
+    font-size:0.76rem;
+    color: var(--ink-soft);
+    font-weight:500;
+  }
+  .input-wrap{ position:relative; }
+  .input-wrap input, .input-wrap select, select.full{
+    width:100%;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 2px solid #e3d9f7;
+    background: #fff;
+    font-family:'Quicksand', sans-serif;
+    font-size: 1rem;
+    color: var(--ink);
+    transition: border-color 0.2s ease;
+  }
+  .input-wrap input:disabled{
+    background: #f6f3fc;
+    color: #b3add0;
+    border-color: #ece6f8;
+  }
+  .input-wrap input:focus, select:focus{
+    border-color: #9d8be0;
+  }
+  .input-wrap .suffix{
+    position:absolute;
+    right:14px; top:50%; transform:translateY(-50%);
+    color: var(--ink-soft);
+    font-weight:700;
+    font-size:0.85rem;
+    pointer-events:none;
+  }
+  .solve-badge{
+    display:inline-block;
+    margin-top:4px;
+    font-size:0.72rem;
+    font-weight:700;
+    color: #7a5fc4;
+    background: #efe8fc;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  .actions{
+    display:flex;
+    gap: 10px;
+    flex-wrap:wrap;
+    margin-top: 6px;
+  }
+  button.btn{
+    border:none;
+    border-radius: 14px;
+    padding: 13px 22px;
+    font-family:'Quicksand', sans-serif;
+    font-weight:700;
+    font-size: 0.95rem;
+    cursor:pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button.btn:active{ transform: scale(0.97); }
+  .btn-primary{
+    background: linear-gradient(135deg, #7fb894, #6d9fd9);
+    color:#fff;
+    box-shadow: 0 10px 20px -10px rgba(75,130,150,0.6);
+    flex:1;
+    min-width: 140px;
+  }
+  .btn-secondary{
+    background: #f1edfb;
+    color: var(--ink-soft);
+  }
+  .btn-tertiary{
+    background: transparent;
+    color: #7a5fc4;
+    text-decoration: underline;
+    padding: 13px 8px;
+  }
+
+  .error-box{
+    display:none;
+    align-items:flex-start;
+    gap:8px;
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid #f2c9d7;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-weight:600;
+    font-size:0.92rem;
+    margin-top: 14px;
+  }
+  .error-box.show{ display:flex; }
+
+  .result{
+    display:none;
+    margin-top: 20px;
+    border-radius: 18px;
+    background: linear-gradient(160deg, #f4f1fd, #eaf6fb);
+    border: 1px solid #e2d9f7;
+    padding: 20px;
+  }
+  .result.show{ display:block; }
+  .result .answer-label{
+    font-size:0.8rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color: var(--ink-soft);
+  }
+  .result .answer-value{
+    font-family:'Playfair Display', serif;
+    font-size: clamp(1.6rem, 5vw, 2.1rem);
+    font-weight:700;
+    color: var(--ink);
+    margin: 4px 0 12px;
+  }
+  .result .answer-value .tone{
+    font-size: 0.95rem;
+    font-family:'Quicksand', sans-serif;
+    font-weight:700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .tone.growth{ background:#e4f2e9; color: var(--growth); }
+  .tone.decay{ background:#f6e6ef; color: var(--decay); }
+
+  .steps{ margin-top: 10px; }
+  .steps h3{
+    font-family:'Playfair Display', serif;
+    font-size:1rem;
+    margin: 0 0 10px;
+    color: var(--ink);
+  }
+  .step{
+    display:grid;
+    grid-template-columns: 96px 1fr;
+    gap: 10px;
+    padding: 9px 0;
+    border-top: 1px dashed #d9cff2;
+    font-size: 0.92rem;
+  }
+  .step:first-child{ border-top:none; }
+  .step .step-label{
+    font-weight:700;
+    color: #7a5fc4;
+  }
+  .step .step-body{ color: var(--ink); }
+  .step .step-body code{
+    background:#fff;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-family: 'Quicksand', sans-serif;
+    font-weight:600;
+    border: 1px solid #ece5f9;
+  }
+
+  details.formula-ref{
+    margin-top: 22px;
+    border-top: 1px solid #e3daf7;
+    padding-top: 14px;
+  }
+  details.formula-ref summary{
+    cursor:pointer;
+    font-weight:700;
+    color: #7a5fc4;
+    font-size:0.92rem;
+  }
+  details.formula-ref .formula-list{ margin-top: 12px; display:flex; flex-direction:column; gap:10px; }
+  .formula-item{
+    background:#fbf9fe;
+    border: 1px solid #ece5f9;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+  }
+  .formula-item b{ display:block; color:var(--ink); margin-bottom:2px; }
+  .formula-item span{ color: var(--ink-soft); }
+
+  footer{
+    text-align:center;
+    margin-top: 28px;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+  }
+
+  sup{ font-size: 0.72em; }
+
+  .visually-hidden{
+    position:absolute !important;
+    width:1px;height:1px;
+    padding:0;margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;border:0;
+  }
+</style>
+</head>
+<body>
+
+<div class="field-bg" aria-hidden="true" id="fieldBg"></div>
+
+<div class="wrap">
+  <header>
+    <div class="header-tulips" aria-hidden="true">
+      <svg viewBox="0 0 100 100"><use href="#tulip"/></svg>
+      <svg viewBox="0 0 100 100"><use href="#tulip"/></svg>
+      <svg viewBox="0 0 100 100"><use href="#tulip"/></svg>
+    </div>
+    <h1>Bloom Growth &amp; Decay Calculator</h1>
+    <p>Solve exponential growth, decay, and half-life problems with clear, step-by-step solutions.</p>
+  </header>
+
+  <main class="card">
+    <svg class="corner-tulip br" viewBox="0 0 100 100" aria-hidden="true"><use href="#tulip"/></svg>
+
+    <nav class="tabs" role="tablist" aria-label="Calculator type">
+      <button type="button" class="active" role="tab" aria-selected="true" aria-controls="panel-gd" id="tab-gd">Growth &amp; Decay</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="panel-hl" id="tab-hl">Half-Life &amp; Doubling</button>
+    </nav>
+
+    <!-- ================= PANEL 1: GROWTH & DECAY ================= -->
+    <section class="panel active" id="panel-gd" role="tabpanel" aria-labelledby="tab-gd">
+      <form id="formGD" novalidate>
+        <fieldset>
+          <legend>1. Choose your model</legend>
+          <div class="grid">
+            <div>
+              <div class="segmented" id="gdDirection">
+                <input type="radio" name="gdDirection" id="gdGrowth" value="growth" checked>
+                <label for="gdGrowth">📈 Growth</label>
+                <input type="radio" name="gdDirection" id="gdDecay" value="decay">
+                <label for="gdDecay">📉 Decay</label>
+              </div>
+            </div>
+            <div>
+              <div class="segmented" id="gdType">
+                <input type="radio" name="gdType" id="gdPercent" value="percentage" checked>
+                <label for="gdPercent">Percentage rate</label>
+                <input type="radio" name="gdType" id="gdCont" value="continuous">
+                <label for="gdCont">Continuous (e)</label>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. What are you solving for?</legend>
+          <div class="input-wrap">
+            <select id="gdSolveFor" class="full" aria-label="Value to solve for">
+              <option value="A">Final amount (A)</option>
+              <option value="P">Initial amount (P)</option>
+              <option value="r">Rate (r)</option>
+              <option value="t">Time (t)</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>3. Enter known values</legend>
+          <div class="grid">
+            <div class="input-group">
+              <label for="gdP">Initial amount (P)</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="gdP" placeholder="e.g. 1000">
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="gdA">Final amount (A)</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="gdA" placeholder="e.g. 1500">
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="gdR">Rate (r)</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="gdR" placeholder="e.g. 5">
+                <span class="suffix">%</span>
+              </div>
+              <span class="hint">Enter as a percent, e.g. 5 for 5%</span>
+            </div>
+            <div class="input-group">
+              <label for="gdT">Time (t)</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="gdT" placeholder="e.g. 3">
+              </div>
+              <span class="hint">Use consistent time units throughout</span>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Calculate</button>
+          <button type="button" class="btn btn-secondary" id="gdExample">Try an example</button>
+          <button type="button" class="btn btn-secondary" id="gdReset">Reset</button>
+        </div>
+
+        <div class="error-box" id="gdError" role="alert"><span>⚠️</span><span id="gdErrorText"></span></div>
+
+        <div class="result" id="gdResult" aria-live="polite">
+          <div class="answer-label">Answer</div>
+          <div class="answer-value" id="gdAnswer"></div>
+          <div class="steps">
+            <h3>Step-by-step solution</h3>
+            <div id="gdSteps"></div>
+          </div>
+        </div>
+      </form>
+
+      <details class="formula-ref">
+        <summary>Show formulas used</summary>
+        <div class="formula-list">
+          <div class="formula-item"><b>Percentage growth</b><span>A = P × (1 + r)<sup>t</sup></span></div>
+          <div class="formula-item"><b>Percentage decay</b><span>A = P × (1 − r)<sup>t</sup></span></div>
+          <div class="formula-item"><b>Continuous growth</b><span>A = P × e<sup>rt</sup></span></div>
+          <div class="formula-item"><b>Continuous decay</b><span>A = P × e<sup>−rt</sup></span></div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ================= PANEL 2: HALF-LIFE / DOUBLING ================= -->
+    <section class="panel" id="panel-hl" role="tabpanel" aria-labelledby="tab-hl">
+      <form id="formHL" novalidate>
+        <fieldset>
+          <legend>1. Choose your model</legend>
+          <div class="segmented" id="hlType">
+            <input type="radio" name="hlType" id="hlHalf" value="half" checked>
+            <label for="hlHalf">⚛️ Half-life decay</label>
+            <input type="radio" name="hlType" id="hlDouble" value="double">
+            <label for="hlDouble">🌱 Doubling time growth</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. What are you solving for?</legend>
+          <div class="input-wrap">
+            <select id="hlSolveFor" class="full" aria-label="Value to solve for">
+              <option value="N">Remaining / current amount (N)</option>
+              <option value="N0">Initial amount (N₀)</option>
+              <option value="t">Elapsed time (t)</option>
+              <option value="h">Half-life / doubling time</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>3. Enter known values</legend>
+          <div class="grid">
+            <div class="input-group">
+              <label for="hlN0">Initial amount (N₀)</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="hlN0" placeholder="e.g. 200">
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="hlN" id="hlNLabel">Remaining amount (N)</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="hlN" placeholder="e.g. 25">
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="hlH" id="hlHLabel">Half-life</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="hlH" placeholder="e.g. 5730">
+              </div>
+              <span class="hint">Same time unit as t</span>
+            </div>
+            <div class="input-group">
+              <label for="hlT">Elapsed time (t)</label>
+              <div class="input-wrap">
+                <input type="text" inputmode="decimal" id="hlT" placeholder="e.g. 11460">
+              </div>
+              <span class="hint">Same time unit as half-life</span>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Calculate</button>
+          <button type="button" class="btn btn-secondary" id="hlExample">Try an example</button>
+          <button type="button" class="btn btn-secondary" id="hlReset">Reset</button>
+        </div>
+
+        <div class="error-box" id="hlError" role="alert"><span>⚠️</span><span id="hlErrorText"></span></div>
+
+        <div class="result" id="hlResult" aria-live="polite">
+          <div class="answer-label">Answer</div>
+          <div class="answer-value" id="hlAnswer"></div>
+          <div class="steps">
+            <h3>Step-by-step solution</h3>
+            <div id="hlSteps"></div>
+          </div>
+        </div>
+      </form>
+
+      <details class="formula-ref">
+        <summary>Show formulas used</summary>
+        <div class="formula-list">
+          <div class="formula-item"><b>Half-life decay</b><span>N = N₀ × (1/2)<sup>t / h</sup></span></div>
+          <div class="formula-item"><b>Doubling time growth</b><span>N = N₀ × 2<sup>t / d</sup></span></div>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer>Built for learning &amp; practice — always double-check important results independently.</footer>
+</div>
+
+<!-- Reusable tulip icon -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="tulip" viewBox="0 0 100 100">
+    <path d="M50,58 C50,72 46,80 49,92" fill="none" stroke="#7fae78" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M49,72 C36,70 25,76 19,85 C33,89 44,84 49,76 Z" fill="#8fb98a"/>
+    <path d="M51,66 C63,64 73,70 78,78 C65,82 55,77 51,70 Z" fill="#7fae78"/>
+    <path d="M50,10 C44,10 40,20 40,29 C40,36 44,41 50,41 C56,41 60,36 60,29 C60,20 56,10 50,10 Z" fill="#ffffff" stroke="#e7ecef" stroke-width="1.2"/>
+    <path d="M33,19 C25,22 20,31 25,40 C30,47 39,45 41,38 C43,31 39,22 33,19 Z" fill="#ffffff" stroke="#e7ecef" stroke-width="1.2"/>
+    <path d="M67,19 C75,22 80,31 75,40 C70,47 61,45 59,38 C57,31 61,22 67,19 Z" fill="#ffffff" stroke="#e7ecef" stroke-width="1.2"/>
+  </symbol>
+</svg>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Decorative background tulips ---------- */
+  function scatterTulips(){
+    const bg = document.getElementById('fieldBg');
+    const count = window.innerWidth < 640 ? 4 : 7;
+    let html = '';
+    for(let i=0;i<count;i++){
+      const size = 30 + Math.random()*46;
+      const left = Math.random()*100;
+      const bottom = -6 - Math.random()*4;
+      const rot = (Math.random()*16 - 8).toFixed(1);
+      html += `<svg style="left:${left}%;bottom:${bottom}%;width:${size}px;height:${size}px;transform:rotate(${rot}deg);" viewBox="0 0 100 100"><use href="#tulip"/></svg>`;
+    }
+    bg.innerHTML = html;
+  }
+  scatterTulips();
+
+  /* ---------- Tabs ---------- */
+  const tabGD = document.getElementById('tab-gd');
+  const tabHL = document.getElementById('tab-hl');
+  const panelGD = document.getElementById('panel-gd');
+  const panelHL = document.getElementById('panel-hl');
+
+  function activateTab(which){
+    const gdActive = which === 'gd';
+    tabGD.classList.toggle('active', gdActive);
+    tabHL.classList.toggle('active', !gdActive);
+    tabGD.setAttribute('aria-selected', gdActive);
+    tabHL.setAttribute('aria-selected', !gdActive);
+    panelGD.classList.toggle('active', gdActive);
+    panelHL.classList.toggle('active', !gdActive);
+  }
+  tabGD.addEventListener('click', () => activateTab('gd'));
+  tabHL.addEventListener('click', () => activateTab('hl'));
+
+  /* ---------- Helpers ---------- */
+  function parseNum(str){
+    if(str === null || str === undefined) return NaN;
+    const s = String(str).trim();
+    if(s === '') return NaN;
+    if(!/^-?\d*\.?\d+(e-?\d+)?$/i.test(s)) return NaN;
+    return parseFloat(s);
+  }
+
+  function formatNumber(x){
+    if(!isFinite(x)) return 'undefined';
+    const abs = Math.abs(x);
+    if(abs !== 0 && (abs < 0.001 || abs >= 1e9)){
+      return x.toExponential(4).replace('e', ' × 10^');
+    }
+    // trim to at most 6 significant decimal places, no trailing zeros
+    let rounded = Math.round(x * 1e6) / 1e6;
+    return rounded.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  }
+
+  function setError(boxId, textId, msg){
+    const box = document.getElementById(boxId);
+    document.getElementById(textId).textContent = msg;
+    box.classList.add('show');
+  }
+  function clearError(boxId){
+    document.getElementById(boxId).classList.remove('show');
+  }
+
+  /* =========================================================
+     PANEL 1: GROWTH & DECAY
+     A = P(1+r)^t   (percentage growth)
+     A = P(1-r)^t   (percentage decay)
+     A = P*e^(rt)   (continuous growth)
+     A = P*e^(-rt)  (continuous decay)
+  ========================================================= */
+  const gdForm = document.getElementById('formGD');
+  const gdSolveFor = document.getElementById('gdSolveFor');
+  const gdInputs = { P: document.getElementById('gdP'), A: document.getElementById('gdA'), r: document.getElementById('gdR'), t: document.getElementById('gdT') };
+
+  function refreshGDDisabled(){
+    const target = gdSolveFor.value;
+    Object.keys(gdInputs).forEach(key => {
+      const input = gdInputs[key];
+      const isTarget = key === target;
+      input.disabled = isTarget;
+      input.value = isTarget ? '' : input.value;
+      input.placeholder = isTarget ? '— to be calculated —' : input.placeholder;
+    });
+  }
+  gdSolveFor.addEventListener('change', refreshGDDisabled);
+  refreshGDDisabled();
+
+  function getGDMode(){
+    return {
+      direction: document.querySelector('input[name="gdDirection"]:checked').value, // growth | decay
+      type: document.querySelector('input[name="gdType"]:checked').value // percentage | continuous
+    };
+  }
+
+  gdForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    clearError('gdError');
+    document.getElementById('gdResult').classList.remove('show');
+
+    const target = gdSolveFor.value;
+    const { direction, type } = getGDMode();
+
+    const raw = {
+      P: gdInputs.P.disabled ? null : parseNum(gdInputs.P.value),
+      A: gdInputs.A.disabled ? null : parseNum(gdInputs.A.value),
+      r: gdInputs.r.disabled ? null : parseNum(gdInputs.r.value),
+      t: gdInputs.t.disabled ? null : parseNum(gdInputs.t.value)
+    };
+
+    // Validate presence
+    for(const key of ['P','A','r','t']){
+      if(key === target) continue;
+      if(raw[key] === null || isNaN(raw[key])){
+        setError('gdError','gdErrorText', `Please enter a valid number for ${labelFor(key)}.`);
+        return;
+      }
+    }
+
+    let P = raw.P, A = raw.A, rPercent = raw.r, t = raw.t;
+    let r = (rPercent !== null && !isNaN(rPercent)) ? rPercent/100 : null;
+
+    // Domain checks on known values
+    if(P !== null && P <= 0){ setError('gdError','gdErrorText','Initial amount (P) must be greater than 0.'); return; }
+    if(A !== null && A <= 0){ setError('gdError','gdErrorText','Final amount (A) must be greater than 0.'); return; }
+    if(r !== null){
+      if(type === 'percentage' && direction === 'growth' && (1+r) <= 0){ setError('gdError','gdErrorText','That rate makes the growth factor zero or negative. Enter a rate greater than -100%.'); return; }
+      if(type === 'percentage' && direction === 'decay' && (r >= 1 || r < 0)){ setError('gdError','gdErrorText','For percentage decay, enter a rate between 0% and 100% (exclusive of 100%).'); return; }
+      if(r < 0 && type === 'continuous'){ setError('gdError','gdErrorText','Enter the rate as a positive percentage; the growth/decay direction is set by the toggle above.'); return; }
+    }
+
+    const steps = [];
+    let base, baseLabel, formulaLabel;
+
+    if(type === 'percentage'){
+      base = direction === 'growth' ? (r !== null ? 1+r : null) : (r !== null ? 1-r : null);
+      formulaLabel = direction === 'growth' ? 'A = P(1 + r)ᵗ' : 'A = P(1 − r)ᵗ';
+    } else {
+      formulaLabel = direction === 'growth' ? 'A = P·e^(rt)' : 'A = P·e^(−rt)';
+    }
+
+    try {
+      if(target === 'A'){
+        if(type === 'percentage'){
+          A = P * Math.pow(base, t);
+          steps.push(['Formula', formulaLabel]);
+          steps.push(['Substitute', `A = ${formatNumber(P)} × (${direction==='growth'?'1 + ':'1 − '}${formatNumber(r)})<sup>${formatNumber(t)}</sup>`]);
+          steps.push(['Simplify base', `${direction==='growth'?'1 + ':'1 − '}${formatNumber(r)} = ${formatNumber(base)}`]);
+          steps.push(['Calculate', `A = ${formatNumber(P)} × ${formatNumber(base)}<sup>${formatNumber(t)}</sup> = ${formatNumber(A)}`]);
+        } else {
+          const exponent = direction === 'growth' ? r*t : -r*t;
+          A = P * Math.exp(exponent);
+          steps.push(['Formula', formulaLabel]);
+          steps.push(['Substitute', `A = ${formatNumber(P)} × e^(${direction==='growth'?'':'−'}${formatNumber(r)} × ${formatNumber(t)})`]);
+          steps.push(['Exponent', `${direction==='growth'?'':'−'}${formatNumber(r)} × ${formatNumber(t)} = ${formatNumber(exponent)}`]);
+          steps.push(['Calculate', `A = ${formatNumber(P)} × e^${formatNumber(exponent)} = ${formatNumber(A)}`]);
+        }
+        showGDResult(A, 'A', direction, steps);
+      }
+      else if(target === 'P'){
+        if(type === 'percentage'){
+          P = A / Math.pow(base, t);
+          steps.push(['Formula', formulaLabel + '  →  solved for P']);
+          steps.push(['Rearrange', `P = A ÷ (${direction==='growth'?'1 + ':'1 − '}r)<sup>t</sup>`]);
+          steps.push(['Substitute', `P = ${formatNumber(A)} ÷ (${formatNumber(base)})<sup>${formatNumber(t)}</sup>`]);
+          steps.push(['Calculate', `P = ${formatNumber(A)} ÷ ${formatNumber(Math.pow(base,t))} = ${formatNumber(P)}`]);
+        } else {
+          const exponent = direction === 'growth' ? r*t : -r*t;
+          P = A / Math.exp(exponent);
+          steps.push(['Formula', formulaLabel + '  →  solved for P']);
+          steps.push(['Rearrange', 'P = A ÷ e^(rt)']);
+          steps.push(['Substitute', `P = ${formatNumber(A)} ÷ e^${formatNumber(exponent)}`]);
+          steps.push(['Calculate', `P = ${formatNumber(A)} ÷ ${formatNumber(Math.exp(exponent))} = ${formatNumber(P)}`]);
+        }
+        if(!isFinite(P) || P<=0){ throw new Error('These values do not produce a valid positive initial amount. Double-check your inputs.'); }
+        showGDResult(P, 'P', direction, steps);
+      }
+      else if(target === 'r'){
+        const ratio = A / P;
+        if(ratio <= 0) throw new Error('A and P must both be positive to solve for the rate.');
+        if(type === 'percentage'){
+          if(t === 0) throw new Error('Time cannot be 0 when solving for the rate.');
+          const solvedBase = Math.pow(ratio, 1/t);
+          r = direction === 'growth' ? solvedBase - 1 : 1 - solvedBase;
+          steps.push(['Formula', formulaLabel + '  →  solved for r']);
+          steps.push(['Isolate base', `(A ÷ P) = (${direction==='growth'?'1 + r':'1 − r'})<sup>t</sup>`]);
+          steps.push(['Substitute', `(${formatNumber(A)} ÷ ${formatNumber(P)}) = ${direction==='growth'?'1 + r':'1 − r'}<sup>${formatNumber(t)}</sup>`]);
+          steps.push(['Take the t-th root', `${direction==='growth'?'1 + r':'1 − r'} = (${formatNumber(ratio)})^(1/${formatNumber(t)}) = ${formatNumber(solvedBase)}`]);
+          steps.push(['Solve for r', `r = ${formatNumber(r)}  →  ${formatNumber(r*100)}%`]);
+        } else {
+          if(t === 0) throw new Error('Time cannot be 0 when solving for the rate.');
+          const lnRatio = Math.log(ratio);
+          r = direction === 'growth' ? lnRatio / t : -lnRatio / t;
+          steps.push(['Formula', formulaLabel + '  →  solved for r']);
+          steps.push(['Isolate exponential', `ln(A ÷ P) = ${direction==='growth'?'rt':'−rt'}`]);
+          steps.push(['Substitute', `ln(${formatNumber(A)} ÷ ${formatNumber(P)}) = ${formatNumber(lnRatio)}`]);
+          steps.push(['Solve for r', `r = ${direction==='growth'?'':'−'}${formatNumber(lnRatio)} ÷ ${formatNumber(t)} = ${formatNumber(r)}  →  ${formatNumber(r*100)}%`]);
+        }
+        if(r < 0 || !isFinite(r)) throw new Error('These values produce an invalid rate. Double-check the direction (growth/decay) and your inputs.');
+        showGDResult(r*100, 'r', direction, steps, '%');
+      }
+      else if(target === 't'){
+        const ratio = A / P;
+        if(ratio <= 0) throw new Error('A and P must both be positive to solve for time.');
+        if(type === 'percentage'){
+          if(base === 1) throw new Error('A rate of 0% never changes the amount, so time cannot be determined.');
+          t = Math.log(ratio) / Math.log(base);
+          steps.push(['Formula', formulaLabel + '  →  solved for t']);
+          steps.push(['Isolate exponent', `(A ÷ P) = (${direction==='growth'?'1 + r':'1 − r'})<sup>t</sup>`]);
+          steps.push(['Take the natural log', `ln(${formatNumber(ratio)}) = t × ln(${formatNumber(base)})`]);
+          steps.push(['Solve for t', `t = ln(${formatNumber(ratio)}) ÷ ln(${formatNumber(base)}) = ${formatNumber(t)}`]);
+        } else {
+          if(r === 0) throw new Error('A rate of 0% never changes the amount, so time cannot be determined.');
+          const lnRatio = Math.log(ratio);
+          t = direction === 'growth' ? lnRatio / r : -lnRatio / r;
+          steps.push(['Formula', formulaLabel + '  →  solved for t']);
+          steps.push(['Isolate exponent', `ln(A ÷ P) = ${direction==='growth'?'rt':'−rt'}`]);
+          steps.push(['Substitute', `ln(${formatNumber(A)} ÷ ${formatNumber(P)}) = ${formatNumber(lnRatio)}`]);
+          steps.push(['Solve for t', `t = ${direction==='growth'?'':'−'}${formatNumber(lnRatio)} ÷ ${formatNumber(r)} = ${formatNumber(t)}`]);
+        }
+        if(!isFinite(t) || t < 0) throw new Error('These values produce an invalid (negative) time. Double-check your inputs.');
+        showGDResult(t, 't', direction, steps);
+      }
+    } catch(err){
+      setError('gdError','gdErrorText', err.message);
+    }
+  });
+
+  function labelFor(key){
+    return { P: 'Initial amount (P)', A: 'Final amount (A)', r: 'Rate (r)', t: 'Time (t)' }[key];
+  }
+
+  function showGDResult(value, target, direction, steps, suffix){
+    suffix = suffix || '';
+    const names = { A: 'Final amount', P: 'Initial amount', r: 'Rate', t: 'Time' };
+    const toneClass = direction === 'growth' ? 'growth' : 'decay';
+    const toneText = direction === 'growth' ? 'Growth' : 'Decay';
+    document.getElementById('gdAnswer').innerHTML =
+      `${names[target]} = ${formatNumber(value)}${suffix} <span class="tone ${toneClass}">${toneText}</span>`;
+    const stepsHtml = steps.map(([label, body]) => `<div class="step"><div class="step-label">${label}</div><div class="step-body">${body}</div></div>`).join('');
+    document.getElementById('gdSteps').innerHTML = stepsHtml;
+    document.getElementById('gdResult').classList.add('show');
+  }
+
+  document.getElementById('gdReset').addEventListener('click', function(){
+    gdForm.reset();
+    refreshGDDisabled();
+    clearError('gdError');
+    document.getElementById('gdResult').classList.remove('show');
+  });
+
+  document.getElementById('gdExample').addEventListener('click', function(){
+    document.getElementById('gdGrowth').checked = true;
+    document.getElementById('gdPercent').checked = true;
+    gdSolveFor.value = 'A';
+    refreshGDDisabled();
+    gdInputs.P.value = 1000;
+    gdInputs.r.value = 5;
+    gdInputs.t.value = 10;
+    clearError('gdError');
+    document.getElementById('gdResult').classList.remove('show');
+  });
+
+  /* =========================================================
+     PANEL 2: HALF-LIFE & DOUBLING TIME
+     Half-life:  N = N0 * (1/2)^(t/h)
+     Doubling:   N = N0 * 2^(t/d)
+  ========================================================= */
+  const hlForm = document.getElementById('formHL');
+  const hlSolveFor = document.getElementById('hlSolveFor');
+  const hlInputs = { N0: document.getElementById('hlN0'), N: document.getElementById('hlN'), h: document.getElementById('hlH'), t: document.getElementById('hlT') };
+
+  function currentHLType(){
+    return document.querySelector('input[name="hlType"]:checked').value; // half | double
+  }
+
+  function updateHLLabels(){
+    const isHalf = currentHLType() === 'half';
+    document.getElementById('hlNLabel').textContent = isHalf ? 'Remaining amount (N)' : 'Current amount (N)';
+    document.getElementById('hlHLabel').textContent = isHalf ? 'Half-life' : 'Doubling time';
+    const opt = hlSolveFor.querySelector('option[value="h"]');
+    opt.textContent = isHalf ? 'Half-life' : 'Doubling time';
+  }
+  document.getElementById('hlHalf').addEventListener('change', updateHLLabels);
+  document.getElementById('hlDouble').addEventListener('change', updateHLLabels);
+  updateHLLabels();
+
+  function refreshHLDisabled(){
+    const target = hlSolveFor.value;
+    Object.keys(hlInputs).forEach(key => {
+      const input = hlInputs[key];
+      const isTarget = key === target;
+      input.disabled = isTarget;
+      input.value = isTarget ? '' : input.value;
+    });
+  }
+  hlSolveFor.addEventListener('change', refreshHLDisabled);
+  refreshHLDisabled();
+
+  hlForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    clearError('hlError');
+    document.getElementById('hlResult').classList.remove('show');
+
+    const target = hlSolveFor.value;
+    const isHalf = currentHLType() === 'half';
+    const base = isHalf ? 0.5 : 2;
+    const sign = isHalf ? -1 : 1; // exponent sign convention: N = N0 * base^(t/h), for half-life base=1/2 already encodes decay
+
+    const raw = {
+      N0: hlInputs.N0.disabled ? null : parseNum(hlInputs.N0.value),
+      N: hlInputs.N.disabled ? null : parseNum(hlInputs.N.value),
+      h: hlInputs.h.disabled ? null : parseNum(hlInputs.h.value),
+      t: hlInputs.t.disabled ? null : parseNum(hlInputs.t.value)
+    };
+
+    for(const key of ['N0','N','h','t']){
+      if(key === target) continue;
+      if(raw[key] === null || isNaN(raw[key])){
+        const names = { N0:'initial amount (N₀)', N: isHalf?'remaining amount (N)':'current amount (N)', h: isHalf?'half-life':'doubling time', t:'elapsed time (t)' };
+        setError('hlError','hlErrorText', `Please enter a valid number for ${names[key]}.`);
+        return;
+      }
+    }
+
+    let { N0, N, h, t } = raw;
+    if(N0 !== null && N0 <= 0){ setError('hlError','hlErrorText','Initial amount (N₀) must be greater than 0.'); return; }
+    if(N !== null && N <= 0){ setError('hlError','hlErrorText','Remaining/current amount (N) must be greater than 0.'); return; }
+    if(h !== null && h <= 0){ setError('hlError','hlErrorText',`${isHalf?'Half-life':'Doubling time'} must be greater than 0.`); return; }
+    if(t !== null && t < 0){ setError('hlError','hlErrorText','Elapsed time cannot be negative.'); return; }
+
+    const formulaLabel = isHalf ? 'N = N₀ × (1/2)^(t / h)' : 'N = N₀ × 2^(t / d)';
+    const steps = [];
+
+    try {
+      if(target === 'N'){
+        N = N0 * Math.pow(base, t/h);
+        steps.push(['Formula', formulaLabel]);
+        steps.push(['Substitute', `N = ${formatNumber(N0)} × ${isHalf?'(1/2)':'2'}^(${formatNumber(t)} / ${formatNumber(h)})`]);
+        steps.push(['Exponent', `${formatNumber(t)} / ${formatNumber(h)} = ${formatNumber(t/h)}`]);
+        steps.push(['Calculate', `N = ${formatNumber(N0)} × ${formatNumber(Math.pow(base,t/h))} = ${formatNumber(N)}`]);
+        showHLResult(N, isHalf?'Remaining amount':'Current amount', steps);
+      }
+      else if(target === 'N0'){
+        N0 = N / Math.pow(base, t/h);
+        steps.push(['Formula', formulaLabel + '  →  solved for N₀']);
+        steps.push(['Rearrange', `N₀ = N ÷ ${isHalf?'(1/2)':'2'}^(t/h)`]);
+        steps.push(['Substitute', `N₀ = ${formatNumber(N)} ÷ ${isHalf?'(1/2)':'2'}^(${formatNumber(t)} / ${formatNumber(h)})`]);
+        steps.push(['Calculate', `N₀ = ${formatNumber(N)} ÷ ${formatNumber(Math.pow(base,t/h))} = ${formatNumber(N0)}`]);
+        if(!isFinite(N0) || N0 <= 0) throw new Error('These values do not produce a valid positive initial amount.');
+        showHLResult(N0, 'Initial amount', steps);
+      }
+      else if(target === 't'){
+        const ratio = N / N0;
+        if(ratio <= 0) throw new Error('N and N₀ must both be positive to solve for time.');
+        if(ratio === 1){ t = 0; }
+        else {
+          t = h * (Math.log(ratio) / Math.log(base));
+        }
+        steps.push(['Formula', formulaLabel + '  →  solved for t']);
+        steps.push(['Isolate exponent', `N ÷ N₀ = ${isHalf?'(1/2)':'2'}^(t/h)`]);
+        steps.push(['Substitute', `${formatNumber(N)} ÷ ${formatNumber(N0)} = ${formatNumber(ratio)}`]);
+        steps.push(['Take the log', `t = h × log(ratio) ÷ log(${isHalf?'1/2':'2'}) = ${formatNumber(h)} × ${formatNumber(Math.log(ratio)/Math.log(base))}`]);
+        steps.push(['Solve for t', `t = ${formatNumber(t)}`]);
+        if(!isFinite(t) || t < 0) throw new Error('These values produce an invalid (negative) time. Double-check that N and N₀ are on the correct side.');
+        showHLResult(t, 'Elapsed time', steps);
+      }
+      else if(target === 'h'){
+        const ratio = N / N0;
+        if(ratio <= 0) throw new Error('N and N₀ must both be positive to solve for half-life/doubling time.');
+        if(ratio === 1) throw new Error('N equals N₀, so no time has passed — half-life/doubling time cannot be determined.');
+        if(t === 0) throw new Error('Elapsed time cannot be 0 when solving for half-life/doubling time.');
+        h = t * Math.log(base) / Math.log(ratio);
+        steps.push(['Formula', formulaLabel + `  →  solved for ${isHalf?'h':'d'}`]);
+        steps.push(['Isolate exponent', `N ÷ N₀ = ${isHalf?'(1/2)':'2'}^(t/h)`]);
+        steps.push(['Substitute', `${formatNumber(N)} ÷ ${formatNumber(N0)} = ${formatNumber(ratio)}`]);
+        steps.push(['Take the log', `${isHalf?'h':'d'} = t × log(${isHalf?'1/2':'2'}) ÷ log(ratio)`]);
+        steps.push(['Solve', `${isHalf?'h':'d'} = ${formatNumber(t)} × ${formatNumber(Math.log(base))} ÷ ${formatNumber(Math.log(ratio))} = ${formatNumber(h)}`]);
+        if(!isFinite(h) || h <= 0) throw new Error('These values do not produce a valid positive half-life/doubling time.');
+        showHLResult(h, isHalf ? 'Half-life' : 'Doubling time', steps);
+      }
+    } catch(err){
+      setError('hlError','hlErrorText', err.message);
+    }
+  });
+
+  function showHLResult(value, label, steps){
+    document.getElementById('hlAnswer').innerHTML = `${label} = ${formatNumber(value)}`;
+    const stepsHtml = steps.map(([l, body]) => `<div class="step"><div class="step-label">${l}</div><div class="step-body">${body}</div></div>`).join('');
+    document.getElementById('hlSteps').innerHTML = stepsHtml;
+    document.getElementById('hlResult').classList.add('show');
+  }
+
+  document.getElementById('hlReset').addEventListener('click', function(){
+    hlForm.reset();
+    updateHLLabels();
+    refreshHLDisabled();
+    clearError('hlError');
+    document.getElementById('hlResult').classList.remove('show');
+  });
+
+  document.getElementById('hlExample').addEventListener('click', function(){
+    document.getElementById('hlHalf').checked = true;
+    updateHLLabels();
+    hlSolveFor.value = 'N';
+    refreshHLDisabled();
+    hlInputs.N0.value = 200;
+    hlInputs.h.value = 5730;
+    hlInputs.t.value = 11460;
+    clearError('hlError');
+    document.getElementById('hlResult').classList.remove('show');
+  });
+
+})();
+</script>
+</body>
+</html>
